@@ -1,4 +1,5 @@
 from src.core.risk_levels import RiskLevel, RiskAssessment
+from src.services.action_service import ActionService
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 class IPInvestigationPlaybook:
     def __init__(self):
         self.risk_assessment = RiskAssessment()
+        self.action_service = ActionService()
         
     async def analyze_results(self, ip: str, vt_results: Dict, abuse_results: Dict) -> Dict:
         # Évaluer les résultats de VirusTotal
@@ -24,6 +26,32 @@ class IPInvestigationPlaybook:
         
         # Générer les recommandations
         recommendations = self._generate_recommendations(overall_risk, ip)
+        
+        # Exécuter les actions automatiques
+        actions_result = await self.action_service.execute_actions(
+            ip=ip,
+            risk_level=overall_risk,
+            analysis_data={
+                "ip": ip,
+                "timestamp": datetime.utcnow().isoformat(),
+                "risk_level": overall_risk.value,
+                "analysis": {
+                    "virustotal": {
+                        "risk_level": vt_risk.value,
+                        "detection_ratio": f"{vt_positives}/{vt_total}",
+                    },
+                    "abuseipdb": {
+                        "risk_level": abuse_risk.value,
+                        "confidence_score": abuse_score,
+                    }
+                }
+            }
+        )
+        
+        # Ajouter les actions prises aux recommandations
+        if actions_result.get("actions_taken"):
+            recommendations.append("\nActions automatiques exécutées:")
+            recommendations.extend([f"✓ {action}" for action in actions_result["actions_taken"]])
         
         return {
             "ip": ip,

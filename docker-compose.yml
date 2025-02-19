@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    volumes:
+      - ./crowdsec/config:/etc/crowdsec
+      - ./crowdsec/data:/var/lib/crowdsec/data
+    environment:
+      - COLLECTIONS=crowdsecurity/linux
+      - CUSTOM_HOSTNAME=security-automation
+    ports:
+      - "8080:8080"
+
   api:
     build:
       context: .
@@ -10,9 +21,12 @@ services:
     environment:
       - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}
+      - CROWDSEC_API_URL=http://crowdsec:8080/v1
     volumes:
       - ./:/app
     depends_on:
+      - crowdsec
       - db
 
   db:
@@ -33,6 +47,9 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}
+      - CROWDSEC_API_URL=http://crowdsec:8080/v1
+      - DISCORD_ALERT_CHANNEL_ID=${DISCORD_ALERT_CHANNEL_ID}
     depends_on:
       - api
 

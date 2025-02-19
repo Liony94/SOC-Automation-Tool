@@ -47,6 +47,7 @@ class SecurityCommands(commands.Cog):
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
+                        logger.debug(f"API Response data: {data}")
                         
                         # Création d'un embed Discord pour une meilleure présentation
                         embed = discord.Embed(
@@ -55,20 +56,27 @@ class SecurityCommands(commands.Cog):
                             color=discord.Color.blue()
                         )
                         
-                        # Ajout des résultats d'analyse
+                        # Ajout des résultats d'analyse VirusTotal
                         analysis = data.get("analysis", {})
                         vt_analysis = analysis.get("virustotal", {})
+                        vt_stats = vt_analysis.get("last_analysis_stats", {})
                         embed.add_field(
                             name="VirusTotal",
-                            value=f"Niveau de risque: {vt_analysis.get('risk_level', 'Unknown').upper()}\nDétections: {vt_analysis.get('detection_ratio', '0/0')}",
+                            value=f"Niveau de risque: {vt_analysis.get('risk_level', 'Unknown').upper()}\n"
+                                  f"Détections: {vt_analysis.get('detection_ratio', '0/0')}\n"
+                                  f"Détails de l'analyse:\n"
+                                  f"• Malicieux: {vt_stats.get('malicious', 0)}\n"
+                                  f"• Suspect: {vt_stats.get('suspicious', 0)}\n"
+                                  f"• Inoffensif: {vt_stats.get('harmless', 0)}",
                             inline=False
                         )
-                        
+
                         # Ajout des résultats AbuseIPDB
                         abuse_analysis = analysis.get("abuseipdb", {})
                         embed.add_field(
                             name="AbuseIPDB",
-                            value=f"Niveau de risque: {abuse_analysis.get('risk_level', 'Unknown').upper()}\nScore de confiance: {abuse_analysis.get('confidence_score', 0)}%",
+                            value=f"Niveau de risque: {abuse_analysis.get('risk_level', 'Unknown').upper()}\n"
+                                  f"Score de confiance: {abuse_analysis.get('confidence_score', 0)}%",
                             inline=False
                         )
                         
@@ -80,7 +88,16 @@ class SecurityCommands(commands.Cog):
                                 value="\n".join(f"• {rec}" for rec in recommendations),
                                 inline=False
                             )
-                        
+
+                        # Ajout des actions automatiques
+                        actions = data.get("actions_taken", [])
+                        if actions:
+                            embed.add_field(
+                                name="Actions automatiques exécutées",
+                                value="\n".join(f"• {action}" for action in actions),
+                                inline=False
+                            )
+
                         await ctx.send(embed=embed)
                     else:
                         error_text = await response.text()
