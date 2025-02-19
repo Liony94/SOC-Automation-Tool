@@ -51,24 +51,35 @@ class SecurityCommands(commands.Cog):
                         # Création d'un embed Discord pour une meilleure présentation
                         embed = discord.Embed(
                             title=f"Analyse de l'IP: {ip_address}",
+                            description=f"Niveau de risque global: **{data.get('risk_level', 'Unknown').upper()}**",
                             color=discord.Color.blue()
                         )
                         
-                        # Ajout des résultats VirusTotal
-                        vt_results = data.get("virustotal_results", {})
+                        # Ajout des résultats d'analyse
+                        analysis = data.get("analysis", {})
+                        vt_analysis = analysis.get("virustotal", {})
                         embed.add_field(
                             name="VirusTotal",
-                            value=f"Score de détection: {vt_results.get('positives', 0)}/{vt_results.get('total', 0)}",
+                            value=f"Niveau de risque: {vt_analysis.get('risk_level', 'Unknown').upper()}\nDétections: {vt_analysis.get('detection_ratio', '0/0')}",
                             inline=False
                         )
                         
                         # Ajout des résultats AbuseIPDB
-                        abuse_results = data.get("abuseipdb_results", {})
+                        abuse_analysis = analysis.get("abuseipdb", {})
                         embed.add_field(
                             name="AbuseIPDB",
-                            value=f"Score d'abus: {abuse_results.get('abuseConfidenceScore', 0)}%",
+                            value=f"Niveau de risque: {abuse_analysis.get('risk_level', 'Unknown').upper()}\nScore de confiance: {abuse_analysis.get('confidence_score', 0)}%",
                             inline=False
                         )
+                        
+                        # Ajout des recommandations
+                        recommendations = data.get("recommendations", [])
+                        if recommendations:
+                            embed.add_field(
+                                name="Recommandations",
+                                value="\n".join(f"• {rec}" for rec in recommendations),
+                                inline=False
+                            )
                         
                         await ctx.send(embed=embed)
                     else:
