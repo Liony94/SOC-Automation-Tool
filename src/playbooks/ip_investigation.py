@@ -117,6 +117,11 @@ class IPInvestigationPlaybook(BasePlaybook):
 
     async def _take_actions(self, ip: str, risk_level: RiskLevel):
         if risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
+            # Vérifier si CrowdSec est configuré
+            if not self.crowdsec.enabled:
+                self.add_action("CrowdSec n'est pas configuré - Blocage automatique désactivé")
+                return
+
             # Vérifier si l'IP est déjà bloquée
             existing = await self.crowdsec.check_ip(ip)
             if not existing:
